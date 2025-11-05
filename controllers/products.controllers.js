@@ -87,10 +87,10 @@ export const updateProducts = async (req, res) => {
 export const createProducto = async (req, res) => {
   try {
     console.log(req.body);
-    const { nombre, precio_unitario, stock, id_producto } = req.body;
+    const { nombre, precio_unitario, stock } = req.body;
     const { rows } = await pool.query(
-      "INSERT INTO Productos (id_producto, nombre, precio_unitario, stock) VALUES ($1, $2, $3, $4) RETURNING id_producto",
-      [id_producto, nombre, precio_unitario, stock]
+      "INSERT INTO Productos (nombre, precio_unitario, stock) VALUES ($1, $2, $3) RETURNING id_producto",
+      [nombre, precio_unitario, stock]
     );
     res
       .status(201)

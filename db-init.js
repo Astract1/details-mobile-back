@@ -10,8 +10,8 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS Clientes (
         id_cliente SERIAL PRIMARY KEY,
         nombre VARCHAR(255) NOT NULL,
-        direccion VARCHAR(255),
-        telefono VARCHAR(50)
+        direccion VARCHAR(255) DEFAULT NULL,
+        telefono VARCHAR(50) DEFAULT NULL
       )
     `);
     console.log("✅ Tabla 'Clientes' verificada/creada");
@@ -19,7 +19,7 @@ export async function initializeDatabase() {
     // Crear tabla de Productos
     await pool.query(`
       CREATE TABLE IF NOT EXISTS Productos (
-        id_producto VARCHAR(50) PRIMARY KEY,
+        id_producto SERIAL PRIMARY KEY,
         nombre VARCHAR(255) NOT NULL,
         precio_unitario DECIMAL(10, 2) NOT NULL,
         stock INTEGER NOT NULL DEFAULT 0
@@ -31,11 +31,14 @@ export async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS Facturas (
         id_factura SERIAL PRIMARY KEY,
-        id_cliente INTEGER NOT NULL,
-        fecha TIMESTAMP NOT NULL,
+        id_cliente INTEGER DEFAULT NULL,
+        products INTEGER DEFAULT NULL,
+        fecha DATE NOT NULL,
         total DECIMAL(10, 2) NOT NULL,
-        products INTEGER,
-        FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente)
+        CONSTRAINT facturas_ibfk_1 FOREIGN KEY (id_cliente) 
+          REFERENCES Clientes(id_cliente) 
+          ON DELETE SET NULL 
+          ON UPDATE CASCADE
       )
     `);
     console.log("✅ Tabla 'Facturas' verificada/creada");
@@ -44,15 +47,24 @@ export async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS Movimientos (
         id_movimiento SERIAL PRIMARY KEY,
-        id_factura INTEGER,
-        id_cliente INTEGER,
-        id_producto VARCHAR(50) NOT NULL,
+        id_factura INTEGER DEFAULT NULL,
+        id_cliente INTEGER DEFAULT NULL,
+        id_producto INTEGER DEFAULT NULL,
         cantidad INTEGER NOT NULL,
         precio_unitario_facturado DECIMAL(10, 2) NOT NULL,
         precio_total_linea DECIMAL(10, 2) NOT NULL,
-        FOREIGN KEY (id_factura) REFERENCES Facturas(id_factura),
-        FOREIGN KEY (id_cliente) REFERENCES Clientes(id_cliente),
-        FOREIGN KEY (id_producto) REFERENCES Productos(id_producto)
+        CONSTRAINT movimientos_ibfk_1 FOREIGN KEY (id_factura) 
+          REFERENCES Facturas(id_factura) 
+          ON DELETE CASCADE 
+          ON UPDATE CASCADE,
+        CONSTRAINT movimientos_ibfk_2 FOREIGN KEY (id_producto) 
+          REFERENCES Productos(id_producto) 
+          ON DELETE CASCADE 
+          ON UPDATE CASCADE,
+        CONSTRAINT movimientos_ibfk_3 FOREIGN KEY (id_cliente) 
+          REFERENCES Clientes(id_cliente) 
+          ON DELETE SET NULL 
+          ON UPDATE CASCADE
       )
     `);
     console.log("✅ Tabla 'Movimientos' verificada/creada");
