@@ -82,6 +82,53 @@ export const updateInvoice = async (req, res) => {
   }
 };
 
+// Obtener factura por ID con sus productos
+export const getInvoiceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Obtener información de la factura
+    const [invoiceRows] = await pool.query(`
+      SELECT 
+        f.id_factura AS id,
+        c.nombre AS cliente,
+        f.fecha AS fecha,
+        f.total AS total,
+        f.products AS products
+      FROM Facturas f
+      INNER JOIN Clientes c ON f.id_cliente = c.id_cliente
+      WHERE f.id_factura = ?
+    `, [id]);
+
+    if (invoiceRows.length === 0) {
+      return res.status(404).json({ message: "Factura no encontrada" });
+    }
+
+    // Obtener productos de la factura desde Movimientos
+    const [productsRows] = await pool.query(`
+      SELECT 
+        m.id_producto AS id,
+        p.nombre AS name,
+        m.cantidad AS quantity,
+        m.precio_unitario_facturado AS price,
+        m.precio_total_linea AS total
+      FROM Movimientos m
+      INNER JOIN Productos p ON m.id_producto = p.id_producto
+      WHERE m.id_factura = ?
+    `, [id]);
+
+    const invoice = {
+      ...invoiceRows[0],
+      products: productsRows
+    };
+
+    res.json(invoice);
+  } catch (error) {
+    console.error("Error al obtener la factura:", error);
+    res.status(500).json({ message: "Error al obtener la factura" });
+  }
+};
+
 // Eliminar factura
 export const deleteInvoice = async (req, res) => {
   try {
