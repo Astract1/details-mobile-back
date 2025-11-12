@@ -6,11 +6,13 @@ import {
   updateInvoice,
   deleteInvoice,
 } from "../controllers/invoices.controllers.js";
+import { detectDevice } from "../middleware/deviceDetection.js";
 
 const router = Router();
 
 router.get("/", getInvoices);
-router.get("/:id", getInvoiceById);
+// Aplicar middleware de detección de dispositivo en la ruta de detalles
+router.get("/:id", detectDevice, getInvoiceById);
 router.post("", createInvoice);
 router.put("/:id", updateInvoice);
 router.delete("/:id", deleteInvoice);
