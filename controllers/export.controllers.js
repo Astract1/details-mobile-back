@@ -8,30 +8,31 @@ export const exportInvoicesPDF = async (req, res) => {
     const { start_date, end_date, client } = req.query;
 
     let query = `
-      SELECT id_factura, cliente, total, fecha, products
-      FROM Facturas
+      SELECT f.id_factura, c.nombre as cliente, f.total, f.fecha, f.products
+      FROM Facturas f
+      INNER JOIN Clientes c ON f.id_cliente = c.id_cliente
       WHERE 1=1
     `;
     const params = [];
     let paramIndex = 1;
 
     if (start_date) {
-      query += ` AND fecha >= $${paramIndex}`;
+      query += ` AND f.fecha >= $${paramIndex}`;
       params.push(start_date);
       paramIndex++;
     }
     if (end_date) {
-      query += ` AND fecha <= $${paramIndex}`;
+      query += ` AND f.fecha <= $${paramIndex}`;
       params.push(end_date);
       paramIndex++;
     }
     if (client) {
-      query += ` AND cliente ILIKE $${paramIndex}`;
+      query += ` AND c.nombre ILIKE $${paramIndex}`;
       params.push(`%${client}%`);
       paramIndex++;
     }
 
-    query += ' ORDER BY fecha DESC';
+    query += ' ORDER BY f.fecha DESC';
 
     const result = await pool.query(query, params);
     const invoices = result.rows;
@@ -73,8 +74,8 @@ export const exportInvoicesPDF = async (req, res) => {
     invoices.forEach((invoice, i) => {
       const y = doc.y;
       doc.text(invoice.id_factura, 50, y);
-      doc.text(invoice.cliente.substring(0, 20), 100, y);
-      doc.text(invoice.products, 250, y);
+      doc.text((invoice.cliente || 'N/A').substring(0, 20), 100, y);
+      doc.text(invoice.products || 0, 250, y);
       doc.text(`$${parseFloat(invoice.total).toLocaleString()}`, 350, y);
       doc.text(new Date(invoice.fecha).toLocaleDateString('es-ES'), 450, y);
       doc.moveDown(0.5);
@@ -104,30 +105,31 @@ export const exportInvoicesExcel = async (req, res) => {
     const { start_date, end_date, client } = req.query;
 
     let query = `
-      SELECT id_factura, cliente, total, fecha, products
-      FROM Facturas
+      SELECT f.id_factura, c.nombre as cliente, f.total, f.fecha, f.products
+      FROM Facturas f
+      INNER JOIN Clientes c ON f.id_cliente = c.id_cliente
       WHERE 1=1
     `;
     const params = [];
     let paramIndex = 1;
 
     if (start_date) {
-      query += ` AND fecha >= $${paramIndex}`;
+      query += ` AND f.fecha >= $${paramIndex}`;
       params.push(start_date);
       paramIndex++;
     }
     if (end_date) {
-      query += ` AND fecha <= $${paramIndex}`;
+      query += ` AND f.fecha <= $${paramIndex}`;
       params.push(end_date);
       paramIndex++;
     }
     if (client) {
-      query += ` AND cliente ILIKE $${paramIndex}`;
+      query += ` AND c.nombre ILIKE $${paramIndex}`;
       params.push(`%${client}%`);
       paramIndex++;
     }
 
-    query += ' ORDER BY fecha DESC';
+    query += ' ORDER BY f.fecha DESC';
 
     const result = await pool.query(query, params);
     const invoices = result.rows;
@@ -198,9 +200,15 @@ export const exportMovementsPDF = async (req, res) => {
     const { start_date, end_date } = req.query;
 
     let query = `
-      SELECT m.*, f.fecha
+      SELECT
+        m.*,
+        f.fecha,
+        c.nombre AS client,
+        p.nombre AS product
       FROM Movimientos m
       LEFT JOIN Facturas f ON m.id_factura = f.id_factura
+      INNER JOIN Clientes c ON m.id_cliente = c.id_cliente
+      INNER JOIN Productos p ON m.id_producto = p.id_producto
       WHERE 1=1
     `;
     const params = [];
@@ -251,8 +259,8 @@ export const exportMovementsPDF = async (req, res) => {
     doc.fontSize(10);
     movements.forEach((movement) => {
       const y = doc.y;
-      doc.text(movement.client.substring(0, 15), 50, y);
-      doc.text(movement.product.substring(0, 20), 150, y);
+      doc.text((movement.client || 'N/A').substring(0, 15), 50, y);
+      doc.text((movement.product || 'N/A').substring(0, 20), 150, y);
       doc.text(movement.cantidad, 300, y);
       doc.text(`$${parseFloat(movement.precio_total_linea).toLocaleString()}`, 400, y);
       doc.moveDown(0.5);
@@ -280,9 +288,15 @@ export const exportMovementsExcel = async (req, res) => {
     const { start_date, end_date } = req.query;
 
     let query = `
-      SELECT m.*, f.fecha
+      SELECT
+        m.*,
+        f.fecha,
+        c.nombre AS client,
+        p.nombre AS product
       FROM Movimientos m
       LEFT JOIN Facturas f ON m.id_factura = f.id_factura
+      INNER JOIN Clientes c ON m.id_cliente = c.id_cliente
+      INNER JOIN Productos p ON m.id_producto = p.id_producto
       WHERE 1=1
     `;
     const params = [];

@@ -52,7 +52,7 @@ export const getDashboardStats = async (req, res) => {
         COUNT(f.id_factura) as total_facturas,
         COALESCE(SUM(f.total), 0) as total_gastado
       FROM Clientes c
-      LEFT JOIN Facturas f ON c.nombre = f.cliente
+      LEFT JOIN Facturas f ON c.id_cliente = f.id_cliente
       GROUP BY c.id_cliente, c.nombre
       ORDER BY total_gastado DESC
       LIMIT 5
@@ -72,13 +72,14 @@ export const getDashboardStats = async (req, res) => {
     // Facturas recientes (últimas 5)
     const recentInvoicesResult = await pool.query(`
       SELECT
-        id_factura,
-        cliente,
-        total,
-        fecha,
-        products
-      FROM Facturas
-      ORDER BY fecha DESC
+        f.id_factura,
+        c.nombre as cliente,
+        f.total,
+        f.fecha,
+        f.products
+      FROM Facturas f
+      INNER JOIN Clientes c ON f.id_cliente = c.id_cliente
+      ORDER BY f.fecha DESC
       LIMIT 5
     `);
 
