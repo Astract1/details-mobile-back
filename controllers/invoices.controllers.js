@@ -1,10 +1,13 @@
 import { pool } from "../db.js";
 
-// Obtener todas las facturas
+// Obtener todas las facturas con filtros opcionales
 export const getInvoices = async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT 
+    const { start_date, end_date, client } = req.query;
+
+    // Construir query dinámicamente con filtros
+    let query = `
+      SELECT
         f.id_factura AS id,
         c.nombre AS cliente,
         f.fecha AS fecha,
@@ -12,7 +15,37 @@ export const getInvoices = async (req, res) => {
         f.products AS products
       FROM Facturas f
       INNER JOIN Clientes c ON f.id_cliente = c.id_cliente
-    `);
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramIndex = 1;
+
+    // Filtro por fecha de inicio
+    if (start_date) {
+      query += ` AND f.fecha >= $${paramIndex}`;
+      params.push(start_date);
+      paramIndex++;
+    }
+
+    // Filtro por fecha de fin
+    if (end_date) {
+      query += ` AND f.fecha <= $${paramIndex}`;
+      params.push(end_date + ' 23:59:59'); // Incluir todo el día
+      paramIndex++;
+    }
+
+    // Filtro por nombre de cliente (búsqueda parcial, case-insensitive)
+    if (client) {
+      query += ` AND LOWER(c.nombre) LIKE LOWER($${paramIndex})`;
+      params.push(`%${client}%`);
+      paramIndex++;
+    }
+
+    // Ordenar por fecha descendente (más recientes primero)
+    query += ` ORDER BY f.fecha DESC`;
+
+    const { rows } = await pool.query(query, params);
 
     res.json(rows);
   } catch (error) {

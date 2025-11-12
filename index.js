@@ -24,9 +24,10 @@ async function startServer() {
     app.use("/invoices", invoicesRoutes);
     app.use("/movements", movementsRoutes);
     
-    // Iniciar servidor
-    app.listen(PORT, () => {
+    // Iniciar servidor en todas las interfaces (0.0.0.0) para permitir conexiones desde dispositivos móviles
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`📱 Accesible desde la red local en: http://192.168.1.14:${PORT}`);
     });
   } catch (error) {
     console.error("❌ Error al iniciar el servidor:", error);
