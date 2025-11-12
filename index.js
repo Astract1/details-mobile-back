@@ -4,6 +4,8 @@ import clientsRoutes from "./routes/clients.routes.js";
 import productsRoutes from "./routes/products.routes.js";
 import invoicesRoutes from "./routes/invoices.routes.js";
 import movementsRoutes from "./routes/movements.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+import exportRoutes from "./routes/export.routes.js";
 import { initializeDatabase } from "./db-init.js";
 
 const app = express();
@@ -23,6 +25,8 @@ async function startServer() {
     app.use("/products", productsRoutes);
     app.use("/invoices", invoicesRoutes);
     app.use("/movements", movementsRoutes);
+    app.use("/analytics", analyticsRoutes);
+    app.use("/export", exportRoutes);
     
     // Iniciar servidor en todas las interfaces (0.0.0.0) para permitir conexiones desde dispositivos móviles
     app.listen(PORT, '0.0.0.0', () => {
