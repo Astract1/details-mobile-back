@@ -83,30 +83,33 @@ export const updateInvoice = async (req, res) => {
 };
 
 // Obtener factura por ID con sus productos
+// Devuelve diferente información según el dispositivo (móvil vs PC)
 export const getInvoiceById = async (req, res) => {
   try {
     const { id } = req.params;
+    const isMobile = req.device?.isMobile || false;
 
     // Obtener información de la factura
-    const [invoiceRows] = await pool.query(`
-      SELECT 
+    const invoiceResult = await pool.query(`
+      SELECT
         f.id_factura AS id,
         c.nombre AS cliente,
+        c.id_cliente AS id_cliente,
         f.fecha AS fecha,
         f.total AS total,
         f.products AS products
       FROM Facturas f
       INNER JOIN Clientes c ON f.id_cliente = c.id_cliente
-      WHERE f.id_factura = ?
+      WHERE f.id_factura = $1
     `, [id]);
 
-    if (invoiceRows.length === 0) {
+    if (invoiceResult.rows.length === 0) {
       return res.status(404).json({ message: "Factura no encontrada" });
     }
 
     // Obtener productos de la factura desde Movimientos
-    const [productsRows] = await pool.query(`
-      SELECT 
+    const productsResult = await pool.query(`
+      SELECT
         m.id_producto AS id,
         p.nombre AS name,
         m.cantidad AS quantity,
@@ -114,15 +117,52 @@ export const getInvoiceById = async (req, res) => {
         m.precio_total_linea AS total
       FROM Movimientos m
       INNER JOIN Productos p ON m.id_producto = p.id_producto
-      WHERE m.id_factura = ?
+      WHERE m.id_factura = $1
     `, [id]);
 
     const invoice = {
-      ...invoiceRows[0],
-      products: productsRows
+      ...invoiceResult.rows[0],
+      products: productsResult.rows
     };
 
-    res.json(invoice);
+    // Si es móvil, incluir información adicional para generar facturas
+    if (isMobile) {
+      // Obtener catálogo completo de productos disponibles
+      const catalogResult = await pool.query(`
+        SELECT
+          id_producto AS id,
+          nombre AS name,
+          precio_unitario AS price,
+          stock
+        FROM Productos
+        ORDER BY nombre
+      `);
+
+      // Obtener lista de clientes disponibles
+      const clientsResult = await pool.query(`
+        SELECT
+          id_cliente AS id,
+          nombre AS name,
+          direccion AS address,
+          telefono AS phone
+        FROM Clientes
+        ORDER BY nombre
+      `);
+
+      // Respuesta completa para móvil
+      res.json({
+        invoice: invoice,
+        availableProducts: catalogResult.rows,
+        availableClients: clientsResult.rows,
+        deviceType: 'mobile'
+      });
+    } else {
+      // Para PC, solo devolver los detalles de la factura
+      res.json({
+        invoice: invoice,
+        deviceType: 'desktop'
+      });
+    }
   } catch (error) {
     console.error("Error al obtener la factura:", error);
     res.status(500).json({ message: "Error al obtener la factura" });
